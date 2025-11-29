@@ -207,6 +207,41 @@ class LogConfig:
             file_handler.setLevel(self.log_level)
             file_handler.setFormatter(plain_formatter)
             root_logger.addHandler(file_handler)
+            
+            # Add separate debug log file if log level is DEBUG
+            if self.log_level == logging.DEBUG:
+                debug_log_path = self.log_dir / "debug.log"
+                
+                if self.rotation_type == "both":
+                    debug_handler = SizeAndTimeRotatingFileHandler(
+                        debug_log_path,
+                        when=self.rotation_when,
+                        interval=self.rotation_interval,
+                        backupCount=self.rotation_backup_count,
+                        maxBytes=self.max_bytes,
+                        encoding='utf-8'
+                    )
+                elif self.rotation_type == "time":
+                    debug_handler = TimedRotatingFileHandler(
+                        debug_log_path,
+                        when=self.rotation_when,
+                        interval=self.rotation_interval,
+                        backupCount=self.rotation_backup_count,
+                        encoding='utf-8'
+                    )
+                else:
+                    debug_handler = RotatingFileHandler(
+                        debug_log_path,
+                        maxBytes=self.max_bytes,
+                        backupCount=self.backup_count,
+                        encoding='utf-8'
+                    )
+                
+                # Only log DEBUG level messages to debug.log
+                debug_handler.setLevel(logging.DEBUG)
+                debug_handler.addFilter(lambda record: record.levelno == logging.DEBUG)
+                debug_handler.setFormatter(plain_formatter)
+                root_logger.addHandler(debug_handler)
         
         # Configure third-party loggers to use our format
         # Set appropriate log levels for noisy loggers

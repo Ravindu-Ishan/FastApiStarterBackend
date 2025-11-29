@@ -36,7 +36,7 @@ service_name = "ORCL"
 
 [logging]
 # Logging configuration
-log_level = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_level = "DEBUG"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 log_to_file = true
 log_dir = "logs"
 detailed_logs = true  # Include file and line numbers

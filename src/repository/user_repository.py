@@ -1,13 +1,14 @@
 """
-User Repository - Data Access Layer using SQLAlchemy Core
+User Repository - Data Access Layer using SQLAlchemy ORM
+Spring Boot JPA-style repository pattern
 """
 
-from sqlalchemy import select, insert, update, delete, func
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import datetime
 
-from model.user import users
+from model.user import User
 from schema.user import UserCreate, UserUpdate
 
 
@@ -23,7 +24,7 @@ class UserRepository:
         """
         self.session = session
     
-    def create(self, user: UserCreate, hashed_password: str) -> int:
+    def create(self, user: UserCreate, hashed_password: str) -> User:
         """
         Create a new user
         
@@ -32,9 +33,9 @@ class UserRepository:
             hashed_password: Hashed password string
             
         Returns:
-            Created user ID
+            Created User entity
         """
-        stmt = insert(users).values(
+        user_entity = User(
             username=user.username,
             email=user.email,
             full_name=user.full_name,
@@ -44,10 +45,11 @@ class UserRepository:
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
-        result = self.session.execute(stmt)
-        return result.inserted_primary_key[0]
+        self.session.add(user_entity)
+        self.session.flush()  # Flush to get the ID without committing
+        return user_entity
     
-    def get_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, user_id: int) -> Optional[User]:
         """
         Get user by ID
         
@@ -55,14 +57,11 @@ class UserRepository:
             user_id: User ID
             
         Returns:
-            User data dictionary or None
+            User entity or None
         """
-        stmt = select(users).where(users.c.id == user_id)
-        result = self.session.execute(stmt)
-        row = result.fetchone()
-        return dict(row._mapping) if row else None
+        return self.session.get(User, user_id)
     
-    def get_all(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_all(self, skip: int = 0, limit: int = 10) -> List[User]:
         """
         Get all users with pagination
         
@@ -71,11 +70,11 @@ class UserRepository:
             limit: Maximum number of records to return
             
         Returns:
-            List of user data dictionaries
+            List of User entities
         """
-        stmt = select(users).offset(skip).limit(limit).order_by(users.c.id)
+        stmt = select(User).offset(skip).limit(limit).order_by(User.id)
         result = self.session.execute(stmt)
-        return [dict(row._mapping) for row in result.fetchall()]
+        return list(result.scalars().all())
     
     def count(self) -> int:
         """
@@ -84,11 +83,11 @@ class UserRepository:
         Returns:
             Total user count
         """
-        stmt = select(func.count()).select_from(users)
+        stmt = select(func.count()).select_from(User)
         result = self.session.execute(stmt)
         return result.scalar()
     
-    def update(self, user_id: int, user_update: UserUpdate) -> bool:
+    def update(self, user_id: int, user_update: UserUpdate) -> Optional[User]:
         """
         Update user information
         
@@ -97,19 +96,20 @@ class UserRepository:
             user_update: Update data
             
         Returns:
-            True if updated, False otherwise
+            Updated User entity or None if not found
         """
-        # Build update dictionary with only provided fields
+        user_entity = self.session.get(User, user_id)
+        if not user_entity:
+            return None
+        
+        # Update only provided fields
         update_data = user_update.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(user_entity, key, value)
         
-        if not update_data:
-            return False
-        
-        update_data["updated_at"] = datetime.utcnow()
-        
-        stmt = update(users).where(users.c.id == user_id).values(**update_data)
-        result = self.session.execute(stmt)
-        return result.rowcount > 0
+        user_entity.updated_at = datetime.utcnow()
+        self.session.flush()  # Flush changes
+        return user_entity
     
     def delete(self, user_id: int) -> bool:
         """
@@ -121,9 +121,13 @@ class UserRepository:
         Returns:
             True if deleted, False otherwise
         """
-        stmt = delete(users).where(users.c.id == user_id)
-        result = self.session.execute(stmt)
-        return result.rowcount > 0
+        user_entity = self.session.get(User, user_id)
+        if not user_entity:
+            return False
+        
+        self.session.delete(user_entity)
+        self.session.flush()
+        return True
     
     def exists_by_username(self, username: str) -> bool:
         """
@@ -135,7 +139,7 @@ class UserRepository:
         Returns:
             True if exists, False otherwise
         """
-        stmt = select(func.count()).select_from(users).where(users.c.username == username)
+        stmt = select(func.count()).select_from(User).where(User.username == username)
         result = self.session.execute(stmt)
         return result.scalar() > 0
     
@@ -149,6 +153,6 @@ class UserRepository:
         Returns:
             True if exists, False otherwise
         """
-        stmt = select(func.count()).select_from(users).where(users.c.email == email)
+        stmt = select(func.count()).select_from(User).where(User.email == email)
         result = self.session.execute(stmt)
         return result.scalar() > 0

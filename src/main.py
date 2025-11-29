@@ -4,6 +4,7 @@ FastAPI Starter Template - Main Entry Point
 #test change
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -94,14 +95,29 @@ app.add_middleware(
 )
 
 
+# Add request ID middleware
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    """Add unique request ID to each request for tracing"""
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log all incoming requests and responses to audit log"""
     start_time = time.time()
+    request_id = getattr(request.state, 'request_id', 'unknown')
     
     # Log incoming request
-    audit_logger.info(f"REQUEST | {request.method} {request.url.path} | Client: {request.client.host}")
+    audit_logger.info(
+        f"REQUEST | {request_id} | {request.method} {request.url.path} | Client: {request.client.host}"
+    )
     
     # Process request
     response = await call_next(request)
@@ -110,7 +126,10 @@ async def log_requests(request: Request, call_next):
     process_time = time.time() - start_time
     
     # Log response
-    audit_logger.info(f"RESPONSE | {request.method} {request.url.path} | Status: {response.status_code} | Time: {process_time:.3f}s")
+    audit_logger.info(
+        f"RESPONSE | {request_id} | {request.method} {request.url.path} | "
+        f"Status: {response.status_code} | Time: {process_time:.3f}s"
+    )
     
     return response
 

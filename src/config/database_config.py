@@ -1,15 +1,16 @@
 """
 Database Configuration and Connection Management
-Supports MySQL and Oracle databases with SQLAlchemy Core
+Supports MySQL and Oracle databases with SQLAlchemy ORM
 """
 
 from sqlalchemy import create_engine, MetaData, pool
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from typing import Optional
 import logging
 
 from config.app_config import config
+from common.base import Base  # Import centralized Base
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +131,7 @@ class DatabaseConnection:
         
         # Test connection
         try:
-            with engine.connect() as conn:
+            with engine.connect():
                 logger.info("Database connection successful")
         except Exception as e:
             logger.error(f"Database connection failed: {str(e)}")
@@ -173,10 +174,11 @@ def get_db_session():
     session = SessionLocal()
     try:
         yield session
-        session.commit()
     except Exception:
         session.rollback()
         raise
+    else:
+        session.commit()
     finally:
         session.close()
 
@@ -198,12 +200,18 @@ def get_db_connection():
 
 def init_db():
     """
-    Initialize database - create all tables defined in metadata
-    Call this on application startup
+    Initialize database - create all tables defined in ORM models
+    Auto-discovers all models by importing the model package
+    No need to manually register each model!
     """
     try:
+        # Import model package to trigger model registration
+        # This will automatically register all models that inherit from Base
+        import model  # noqa: F401
+        
         engine = db.get_engine()
-        db.metadata.create_all(engine)
+        # Create tables from ORM Base.metadata (auto-discovered models)
+        Base.metadata.create_all(engine)
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")

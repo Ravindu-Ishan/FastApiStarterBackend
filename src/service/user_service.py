@@ -1,15 +1,16 @@
 """
 User Service - Business Logic Layer
+Spring Boot-style service with entity-to-DTO conversion
 """
 
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
 from fastapi import HTTPException, status
 import hashlib
 import logging
 
 from repository.user_repository import UserRepository
 from schema.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from model.user import User
 
 
 class UserService:
@@ -38,6 +39,19 @@ class UserService:
             Hashed password
         """
         return hashlib.sha256(password.encode()).hexdigest()
+    
+    def _entity_to_dto(self, user: User) -> UserResponse:
+        """
+        Convert User entity to UserResponse DTO
+        Spring Boot-style entity-to-DTO conversion
+        
+        Args:
+            user: User entity
+            
+        Returns:
+            UserResponse DTO
+        """
+        return UserResponse.model_validate(user)
     
     def create_user(self, user: UserCreate) -> UserResponse:
         """
@@ -73,20 +87,12 @@ class UserService:
         # Hash password
         hashed_password = self.hash_password(user.password)
         
-        # Create user
-        user_id = self.repository.create(user, hashed_password)
-        self.logger.info(f"User created successfully with ID: {user_id}")
+        # Create user entity
+        user_entity = self.repository.create(user, hashed_password)
+        self.logger.info(f"User created successfully with ID: {user_entity.id}")
         
-        # Retrieve and return created user
-        created_user = self.repository.get_by_id(user_id)
-        if not created_user:
-            self.logger.error(f"Failed to retrieve created user with ID: {user_id}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve created user"
-            )
-        
-        return UserResponse(**created_user)
+        # Convert entity to DTO
+        return self._entity_to_dto(user_entity)
     
     def get_user(self, user_id: int) -> UserResponse:
         """
@@ -102,16 +108,16 @@ class UserService:
             HTTPException: If user not found
         """
         self.logger.debug(f"Fetching user with ID: {user_id}")
-        user = self.repository.get_by_id(user_id)
-        if not user:
+        user_entity = self.repository.get_by_id(user_id)
+        if not user_entity:
             self.logger.warning(f"User not found with ID: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"User with ID {user_id} not found"
             )
         
-        self.logger.debug(f"User retrieved: {user['username']}")
-        return UserResponse(**user)
+        self.logger.debug(f"User retrieved: {user_entity.username}")
+        return self._entity_to_dto(user_entity)
     
     def get_users(self, page: int = 1, page_size: int = 10) -> UserListResponse:
         """
@@ -125,10 +131,11 @@ class UserService:
             Paginated user list response
         """
         skip = (page - 1) * page_size
-        users = self.repository.get_all(skip=skip, limit=page_size)
+        user_entities = self.repository.get_all(skip=skip, limit=page_size)
         total = self.repository.count()
         
-        user_responses = [UserResponse(**user) for user in users]
+        # Convert entities to DTOs
+        user_responses = [self._entity_to_dto(entity) for entity in user_entities]
         
         return UserListResponse(
             users=user_responses,
@@ -163,7 +170,7 @@ class UserService:
             )
         
         # If email is being updated, check if it already exists
-        if user_update.email and user_update.email != existing_user["email"]:
+        if user_update.email and user_update.email != existing_user.email:
             if self.repository.exists_by_email(user_update.email):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -171,8 +178,8 @@ class UserService:
                 )
         
         # Update user
-        success = self.repository.update(user_id, user_update)
-        if not success:
+        updated_entity = self.repository.update(user_id, user_update)
+        if not updated_entity:
             self.logger.error(f"Failed to update user with ID: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -180,10 +187,7 @@ class UserService:
             )
         
         self.logger.info(f"User updated successfully: {user_id}")
-        
-        # Retrieve and return updated user
-        updated_user = self.repository.get_by_id(user_id)
-        return UserResponse(**updated_user)
+        return self._entity_to_dto(updated_entity)
     
     def delete_user(self, user_id: int) -> bool:
         """
