@@ -34,6 +34,10 @@ class DatabaseConnection:
         
         Returns:
             SQLAlchemy connection URL string
+        
+        Note:
+            This method is also used by Alembic for migrations.
+            It reads from deployment.toml configuration.
         """
         db_type = config.db_type.lower()
         
@@ -203,6 +207,10 @@ def init_db():
     Initialize database - create all tables defined in ORM models
     Auto-discovers all models by importing the model package
     No need to manually register each model!
+    
+    WARNING: This only creates NEW tables. For schema changes, use Alembic migrations:
+        alembic revision --autogenerate -m "description"
+        alembic upgrade head
     """
     try:
         # Import model package to trigger model registration
@@ -216,3 +224,13 @@ def init_db():
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
+
+
+def get_database_url() -> str:
+    """
+    Get database connection URL for external tools (e.g., Alembic)
+    
+    Returns:
+        SQLAlchemy connection URL string
+    """
+    return db._build_connection_url()

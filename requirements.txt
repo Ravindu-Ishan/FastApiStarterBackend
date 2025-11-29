@@ -6,6 +6,7 @@ pydantic-settings>=2.6.0
 
 # Database
 sqlalchemy>=2.0.0
+alembic>=1.13.0  # Database migrations
 # Database Drivers
 pymysql>=1.1.0
 cryptography>=44.0.0  # Required for MySQL SSL
@@ -19,3 +20,6 @@ toml>=0.10.0
 python-multipart>=0.0.20  # For form data
 httpx>=0.28.0  # For async HTTP requests
 email-validator>=2.0.0  # For email validation
+
+# Security
+passlib[bcrypt]>=1.7.4  # Password hashing with bcrypt

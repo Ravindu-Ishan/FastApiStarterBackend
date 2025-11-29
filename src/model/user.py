@@ -4,9 +4,14 @@ User Model - SQLAlchemy ORM Entity Definition
 
 from sqlalchemy import String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from common.base import Base
+
+
+def utc_now() -> datetime:
+    """Return current UTC time with timezone info"""
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
@@ -29,10 +34,10 @@ class User(Base):
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow, 
-        onupdate=datetime.utcnow, 
+        default=utc_now, 
+        onupdate=utc_now, 
         nullable=False
     )
     

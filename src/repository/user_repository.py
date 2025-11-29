@@ -6,7 +6,7 @@ Spring Boot JPA-style repository pattern
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from model.user import User
 from schema.user import UserCreate, UserUpdate
@@ -35,6 +35,7 @@ class UserRepository:
         Returns:
             Created User entity
         """
+        now = datetime.now(timezone.utc)
         user_entity = User(
             username=user.username,
             email=user.email,
@@ -42,8 +43,8 @@ class UserRepository:
             hashed_password=hashed_password,
             is_active=True,
             is_superuser=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=now,
+            updated_at=now
         )
         self.session.add(user_entity)
         self.session.flush()  # Flush to get the ID without committing
@@ -107,7 +108,7 @@ class UserRepository:
         for key, value in update_data.items():
             setattr(user_entity, key, value)
         
-        user_entity.updated_at = datetime.utcnow()
+        user_entity.updated_at = datetime.now(timezone.utc)
         self.session.flush()  # Flush changes
         return user_entity
     

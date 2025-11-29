@@ -5,12 +5,15 @@ Spring Boot-style service with entity-to-DTO conversion
 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-import hashlib
+from passlib.context import CryptContext
 import logging
 
 from repository.user_repository import UserRepository
 from schema.user import UserCreate, UserUpdate, UserResponse, UserListResponse
 from model.user import User
+
+# Password hashing context using bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class UserService:
@@ -29,8 +32,7 @@ class UserService:
     @staticmethod
     def hash_password(password: str) -> str:
         """
-        Hash password using SHA-256 (for demo purposes)
-        In production, use bcrypt or similar
+        Hash password using bcrypt
         
         Args:
             password: Plain text password
@@ -38,7 +40,21 @@ class UserService:
         Returns:
             Hashed password
         """
-        return hashlib.sha256(password.encode()).hexdigest()
+        return pwd_context.hash(password)
+    
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """
+        Verify a password against its hash
+        
+        Args:
+            plain_password: Plain text password to verify
+            hashed_password: Hashed password to check against
+            
+        Returns:
+            True if password matches, False otherwise
+        """
+        return pwd_context.verify(plain_password, hashed_password)
     
     def _entity_to_dto(self, user: User) -> UserResponse:
         """
