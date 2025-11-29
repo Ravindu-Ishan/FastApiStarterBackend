@@ -1,0 +1,21 @@
+# FastAPI Core
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+
+# Database
+sqlalchemy>=2.0.0
+# Database Drivers
+pymysql>=1.1.0
+cryptography>=44.0.0  # Required for MySQL SSL
+# cx-oracle>=8.3.0  # Oracle driver - Uncomment if using Oracle (requires Visual C++ Build Tools)
+
+# Configuration
+python-dotenv>=1.0.0
+toml>=0.10.0
+
+# Utilities
+python-multipart>=0.0.20  # For form data
+httpx>=0.28.0  # For async HTTP requests
+email-validator>=2.0.0  # For email validation

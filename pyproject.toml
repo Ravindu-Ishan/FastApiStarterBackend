@@ -1,0 +1,5 @@
+[project]
+name = "fastapi-starter-backend"
+version = "1.0.0"
+description = "FastAPI Starter Template with clean architecture"
+requires-python = ">=3.10"

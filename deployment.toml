@@ -1,0 +1,56 @@
+[application]
+# Application settings
+app_name = "FastAPI Starter"
+debug = false
+api_prefix = "/api/v1"
+
+[server]
+# Server configuration
+host = "0.0.0.0"
+port = 8000
+reload = true
+
+[cors]
+# CORS (Cross-Origin Resource Sharing) settings
+origins = ["http://localhost:3000", "http://localhost:8080"]
+allow_credentials = true
+allow_methods = ["*"]
+allow_headers = ["*"]
+
+[database]
+# Database type: "mysql", "oracle", or "sqlite"
+db_type = "sqlite"
+
+# SQLite configuration (for development)
+sqlite_file = "fastapi_db.sqlite"
+
+# MySQL/Oracle configurations (comment out when using SQLite)
+host = "localhost"
+port = 3306
+username = "${DB_USERNAME}"
+password = "${DB_PASSWORD}"
+database = "fastapi_db"
+
+# Oracle specific (required only when db_type = "oracle")
+service_name = "ORCL"
+
+[logging]
+# Logging configuration
+log_level = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_to_file = true
+log_dir = "logs"
+detailed_logs = true  # Include file and line numbers
+
+# Log rotation settings
+# rotation_type: "size" (rotate by file size), "time" (rotate by time), or "both" (rotate by both)
+rotation_type = "both"
+
+# Size-based rotation settings (used when rotation_type = "size" or "both")
+max_bytes = 10485760  # 10MB - maximum size before rotation
+backup_count = 5      # Number of backup files to keep
+
+# Time-based rotation settings (used when rotation_type = "time" or "both")
+# when: "S" (seconds), "M" (minutes), "H" (hours), "D" (days), "midnight", "W0"-"W6" (weekday)
+rotation_when = "midnight"  # Rotate at midnight daily
+rotation_interval = 1       # Number of intervals (e.g., 1 = every 1 day)
+rotation_backup_count = 30  # Keep 30 days of logs
